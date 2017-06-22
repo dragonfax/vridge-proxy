@@ -25,9 +25,11 @@ UDP_PORTS.forEach(function (port) {
 	udp_servers.push(server);
 
 	// 'message' is emitted when the server gets a message
+	/*
 	server.on('message', function (message, sender) {
 		console.log('message from ' + sender.address + ':' + sender.port);
-});
+	});
+	*/
 });
 
 
