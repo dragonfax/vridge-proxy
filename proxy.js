@@ -1,6 +1,6 @@
 var lodash = require('lodash');
 var udpProxy = require('udp-proxy');
-var tcpProxy = require('tcp-proxy');
+var tcpProxy = require("node-tcp-proxy");
 
 var UDP_PORTS = [18481, 38217];
 var TCP_PORTS_LOW = 38216;
@@ -36,15 +36,7 @@ UDP_PORTS.forEach(function (port) {
 var tcp_servers = [];
 TCP_PORTS.forEach(function(port) {
 
-	var server = tcpProxy.createServer({
-		target: {
-			host: vridge_host,
-			port: port
-	}
-	});
-
-	server.listen(port);
-
+	var server = tcpProxy.createProxy(port, vridge_host, port, { hostname: '0.0.0.0'});
 	tcp_servers.push(server);
 });
 
