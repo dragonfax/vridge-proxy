@@ -10,73 +10,79 @@ const MAX_UDP_PACKET_LENGTH = 65535
 
 func CreateUDPPort(bindIP string, port int) {
 
-	bindAddr := fmt.Sprintf("%s:%d", bindIP, port)
+	bindAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", bindIP, port))
+	if err != nil {
+		log.Fatal(err)
+	}
 	log.Println("binding to UDP ", bindAddr)
 
-	pc, err := net.ListenPacket("udp", bindAddr)
+	pc, err := net.ListenUDP("udp", bindAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var clientAddr *net.UDPAddr
-	foundClientAddr := false
 	serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", serverIP, port))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	buffer := make([]byte, MAX_UDP_PACKET_LENGTH)
+	// lets start 4 of these up.
+	for _, _ = range "1234" {
 
-	// deadline := time.Now().Add(time.Hour * 999)
+		go func() {
 
-	// pc.SetDeadline(deadline)
+			// needs to be global, not goroutine local
+			var clientAddr *net.UDPAddr
+			foundClientAddr := false
 
-	go func() {
+			buffer := make([]byte, MAX_UDP_PACKET_LENGTH)
+			oobuf := make([]byte, 1024)
 
-		for {
-			buffer = buffer[:cap(buffer)]
-			n, sAddr, err := pc.ReadFrom(buffer)
-			if err != nil {
-				log.Fatal(err)
-			}
-			buffer = buffer[:n]
-
-			if sAddr == nil && len(buffer) == 0 {
-				// log.Println("empty packet")
-				continue
-			}
-
-			sourceAddr := sAddr.(*net.UDPAddr)
-
-			if sourceAddr.String() == serverAddr.String() {
-				log.Println("received server packet")
-				pc.WriteTo(buffer, clientAddr)
-			} else {
-
-				// first time save the address
-				// after that, verify the address is expected.
-				if !foundClientAddr {
-					clientAddr = sourceAddr
-					foundClientAddr = true
-					log.Println("found client of ", clientAddr)
-				}
-
-				if sourceAddr.String() != clientAddr.String() {
-					log.Fatal("unknown source address")
-				}
-
-				// log.Println("received client packet")
-
-				n2, err := pc.WriteTo(buffer, serverAddr)
+			for {
+				buffer = buffer[:cap(buffer)]
+				oobuf = oobuf[:cap(oobuf)]
+				n, oobn, _, sourceAddr, err := pc.ReadMsgUDP(buffer, oobuf)
 				if err != nil {
 					log.Fatal(err)
 				}
+				buffer = buffer[:n]
+				oobuf = oobuf[:oobn]
 
-				if n != n2 {
-					log.Fatal("failed to write all of the packet")
+				if sourceAddr == nil && len(buffer) == 0 {
+					// log.Println("empty packet")
+					continue
 				}
-			}
 
-		}
-	}()
+				if sourceAddr.String() == serverAddr.String() {
+					log.Println("received server packet")
+					pc.WriteTo(buffer, clientAddr)
+				} else {
+
+					// first time save the address
+					// after that, verify the address is expected.
+					if !foundClientAddr {
+						clientAddr = sourceAddr
+						foundClientAddr = true
+						log.Println("found client of ", clientAddr)
+					}
+
+					if sourceAddr.String() != clientAddr.String() {
+						log.Fatal("unknown source address")
+					}
+
+					// log.Println("received client packet")
+
+					n2, _, err := pc.WriteMsgUDP(buffer, oobuf, serverAddr)
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					if n != n2 {
+						log.Fatal("failed to write all of the packet")
+					}
+				}
+
+			}
+		}()
+	}
 }
