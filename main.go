@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-var UDP_PORTS = [...]int{18481, 38217}
+var UDP_PORTS = [...]int{18481} // , 38217}
 
 const TCP_PORTS_LOW = 38216
 const TCP_PORTS_HIGH = 38230
@@ -14,7 +14,6 @@ var num_tcp_ports = TCP_PORTS_HIGH - TCP_PORTS_LOW + 1
 var TCP_PORTS = make([]int, num_tcp_ports)
 
 var serverIP = "64.62.255.87"
-var clientIP string
 var localBindIP = "0.0.0.0"
 
 func initTCPPorts() {

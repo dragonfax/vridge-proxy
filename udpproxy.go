@@ -54,8 +54,16 @@ func CreateUDPPort(bindIP string, port int) {
 				}
 
 				if sourceAddr.String() == serverAddr.String() {
-					log.Println("received server packet")
-					pc.WriteTo(buffer, clientAddr)
+					// log.Println("received server packet")
+					log.Println("server packet length ", len(buffer))
+					// log.Println(hex.Dump(buffer))
+					n2, _, err := pc.WriteMsgUDP(buffer, oobuf, clientAddr)
+					if err != nil {
+						log.Fatal(err)
+					}
+					if n2 != n {
+						log.Fatal("failed to send entire packet to client")
+					}
 				} else {
 
 					// first time save the address
@@ -83,6 +91,7 @@ func CreateUDPPort(bindIP string, port int) {
 				}
 
 			}
+			log.Println("closing udp proxy")
 		}()
 	}
 }
