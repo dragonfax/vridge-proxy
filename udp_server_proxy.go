@@ -9,6 +9,8 @@ import (
 
 var UDP_PORT = 18481
 
+var SERVER_BIND_IP = "169.254.218.169"
+
 func listenAsServerProxy() *net.TCPConn {
 	ln, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", 3278))
 	if err != nil {
@@ -37,5 +39,5 @@ func server() {
 
 	startEmiter(serverIP)
 
-	CreateUDPPort(localBindIP, 23432, proxy)
+	CreateUDPPort(SERVER_BIND_IP, UDP_PORT, proxy)
 }

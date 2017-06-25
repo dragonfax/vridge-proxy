@@ -15,14 +15,14 @@ var num_tcp_ports = TCP_PORTS_HIGH - TCP_PORTS_LOW + 1
 var TCP_PORTS = make([]int, num_tcp_ports)
 
 func initClientTCPPorts() {
-	initTCPPorts(0, -1000)
+	initTCPPorts("", 0, -1000)
 }
 
 func initServerTCPPorts() {
-	initTCPPorts(-1000, 0)
+	initTCPPorts(SERVER_BIND_IP+":23432", -1000, 0)
 }
 
-func initTCPPorts(port_adjust_local int, port_adjust_remote int) {
+func initTCPPorts(fromto string, port_adjust_local int, port_adjust_remote int) {
 	for i := 0; i < num_tcp_ports; i++ {
 		TCP_PORTS[i] = TCP_PORTS_LOW + i
 	}
@@ -31,7 +31,7 @@ func initTCPPorts(port_adjust_local int, port_adjust_remote int) {
 		localBindAddr := fmt.Sprintf("%s:%d", localBindIP, tcp_port+port_adjust_local)
 		log.Println("binding ", localBindAddr)
 		remoteBindAddr := fmt.Sprintf("%s:%d", serverIP, tcp_port+port_adjust_remote)
-		p := NewProxy(localBindAddr, remoteBindAddr)
+		p := NewProxy(localBindAddr, fromto, remoteBindAddr)
 		err := p.Start()
 		if err != nil {
 			log.Fatal(err)
@@ -42,17 +42,20 @@ func initTCPPorts(port_adjust_local int, port_adjust_remote int) {
 }
 
 type Proxy struct {
-	from string
-	to   string
-	done chan struct{}
+	from   string
+	fromto string
+	to     string
+	done   chan struct{}
 }
 
-func NewProxy(from, to string) *Proxy {
-	return &Proxy{
-		from: from,
-		to:   to,
-		done: make(chan struct{}),
+func NewProxy(from, fromto, to string) *Proxy {
+	p := &Proxy{
+		from:   from,
+		fromto: fromto,
+		to:     to,
+		done:   make(chan struct{}),
 	}
+	return p
 }
 
 func (p *Proxy) Start() error {
@@ -82,7 +85,7 @@ func (p *Proxy) run(listener net.Listener) {
 			if err == nil {
 				go p.handle(connection)
 			} else {
-				log.Print("tcp: ", err)
+				log.Println("tcp: ", err)
 			}
 		}
 	}
@@ -92,9 +95,23 @@ func (p *Proxy) handle(connection net.Conn) {
 	log.Println("Handling", connection)
 	defer log.Println("Done handling", connection)
 	defer connection.Close()
-	remote, err := net.Dial("tcp", p.to)
+
+	to, err := net.ResolveTCPAddr("tcp", p.to)
 	if err != nil {
-		log.Print("tcp: ", err)
+		log.Fatal(err)
+	}
+
+	var fromto *net.TCPAddr
+	if p.fromto != "" {
+		fromto, err = net.ResolveTCPAddr("tcp", p.fromto)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	remote, err := net.DialTCP("tcp", fromto, to)
+	if err != nil {
+		log.Println("tcp: ", err)
 		return
 	}
 	defer remote.Close()
@@ -112,7 +129,7 @@ func (p *Proxy) copy(from, to net.Conn, wg *sync.WaitGroup) {
 		return
 	default:
 		if _, err := io.Copy(to, from); err != nil {
-			log.Print("tcp: ", err)
+			log.Println("tcp: ", err)
 			p.Stop()
 			return
 		}
