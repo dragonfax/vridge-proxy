@@ -37,5 +37,5 @@ func server() {
 
 	startEmiter(serverIP)
 
-	CreateUDPPort(localBindIP, UDP_PORT, proxy, "127.0.0.1")
+	CreateUDPPort(localBindIP, 23432, proxy)
 }

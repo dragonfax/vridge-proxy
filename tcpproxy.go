@@ -82,7 +82,7 @@ func (p *Proxy) run(listener net.Listener) {
 			if err == nil {
 				go p.handle(connection)
 			} else {
-				log.Print(err)
+				log.Print("tcp: ", err)
 			}
 		}
 	}
@@ -94,7 +94,7 @@ func (p *Proxy) handle(connection net.Conn) {
 	defer connection.Close()
 	remote, err := net.Dial("tcp", p.to)
 	if err != nil {
-		log.Print(err)
+		log.Print("tcp: ", err)
 		return
 	}
 	defer remote.Close()
@@ -112,7 +112,7 @@ func (p *Proxy) copy(from, to net.Conn, wg *sync.WaitGroup) {
 		return
 	default:
 		if _, err := io.Copy(to, from); err != nil {
-			log.Print(err)
+			log.Print("tcp: ", err)
 			p.Stop()
 			return
 		}

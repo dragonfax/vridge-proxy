@@ -34,15 +34,24 @@ func startEmiter(udpIP string) {
 
 		for {
 			n := readFromProxy(buf)
+
+			if n == 0 {
+				panic("zero length packet from proxy")
+			}
+
 			buf = buf[:n]
+
+			// log.Println("emitting packet, size ", n)
 
 			// send UDP
 			n, err := udpConn.WriteTo(buf, udpAddr)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(buf)
+				log.Println(udpAddr)
+				panic(err)
 			}
 			if n != len(buf) {
-				log.Fatal("wrong length")
+				panic("udp: wrong length")
 			}
 		}
 	}()
@@ -53,25 +62,26 @@ func readFromProxy(buf []byte) int {
 	buf = buf[:2]
 	n, err := io.ReadFull(proxyReader, buf)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("emitter: ", err)
 	}
 	if n != 2 {
-		log.Fatal("wrong length")
+		log.Fatal("emitter: wrong length")
 	}
 	pl := int(binary.LittleEndian.Uint16(buf))
 
-	if pl > 0 {
-
-		buf = buf[:pl]
-		n, err = io.ReadFull(proxyReader, buf)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if n != pl {
-			log.Fatal("wrong length")
-		}
-		buf = buf[:n]
+	if pl == 0 {
+		panic("zero length packet")
 	}
+
+	buf = buf[:pl]
+	n, err = io.ReadFull(proxyReader, buf)
+	if err != nil {
+		log.Fatal("emitter: ", err)
+	}
+	if n != pl {
+		log.Fatal("emitter: wrong length")
+	}
+	buf = buf[:n]
 
 	return pl
 }
