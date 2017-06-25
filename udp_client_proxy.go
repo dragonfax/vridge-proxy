@@ -9,11 +9,12 @@ import (
 )
 
 func client() {
+	initClientTCPPorts()
+
 	proxy = connectToServerProxy()
 	proxyReader = bufio.NewReader(proxy)
-
 	startEmiter(clientIP)
-	initTCPPorts()
+
 	CreateUDPPort(localBindIP, UDP_PORT, proxy, clientIP)
 }
 
@@ -55,13 +56,12 @@ func CreateUDPPort(bindIP string, port int, tcpProxy net.Conn, udpIP string) {
 				continue
 			}
 
-			writeToProxy(buffer, sourceAddr.Port, 0)
+			writeToProxy(buffer)
 		}
-		log.Println("closing udp proxy")
 	}()
 }
 
-func writeToProxy(buf []byte, port int, id int) {
+func writeToProxy(buf []byte) {
 
 	bs := make([]byte, 2)
 	binary.LittleEndian.PutUint16(bs, uint16(len(buf)))
@@ -71,24 +71,6 @@ func writeToProxy(buf []byte, port int, id int) {
 	}
 	if n != 2 {
 		log.Fatal("didn't write the full buffer length header")
-	}
-
-	binary.LittleEndian.PutUint16(bs, uint16(port))
-	n, err = proxy.Write(bs)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if n != 2 {
-		log.Fatal("didn't write the full port address header")
-	}
-
-	binary.LittleEndian.PutUint16(bs, uint16(id))
-	n, err = proxy.Write(bs)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if n != 2 {
-		log.Fatal("didn't write the full id header")
 	}
 
 	n, err = proxy.Write(buf)

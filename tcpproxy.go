@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 const TCP_PORTS_LOW = 38216
@@ -13,15 +14,25 @@ const TCP_PORTS_HIGH = 38230
 var num_tcp_ports = TCP_PORTS_HIGH - TCP_PORTS_LOW + 1
 var TCP_PORTS = make([]int, num_tcp_ports)
 
-func initTCPPorts() {
+func initClientTCPPorts() {
+	initTCPPorts(0, -1000)
+}
+
+func initServerTCPPorts() {
+	initTCPPorts(-1000, 0)
+}
+
+func initTCPPorts(port_adjust_local int, port_adjust_remote int) {
 	for i := 0; i < num_tcp_ports; i++ {
 		TCP_PORTS[i] = TCP_PORTS_LOW + i
 	}
 
 	for _, tcp_port := range TCP_PORTS {
-		localBindAddr := fmt.Sprintf("%s:%d", localBindIP, tcp_port)
+		localBindAddr := fmt.Sprintf("%s:%d", localBindIP, tcp_port+port_adjust_local)
 		log.Println("binding ", localBindAddr)
-		err := Start(localBindAddr)
+		remoteBindAddr := fmt.Sprintf("%s:%d", serverIP, tcp_port+port_adjust_remote)
+		p := NewProxy(localBindAddr, remoteBindAddr)
+		err := p.Start()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -30,77 +41,80 @@ func initTCPPorts() {
 	log.Println("tcp ports are listening")
 }
 
-func Start(from string) error {
-	addr, err := net.ResolveTCPAddr("tcp", from)
-	if err != nil {
-		log.Fatal(err)
-	}
+type Proxy struct {
+	from string
+	to   string
+	done chan struct{}
+}
 
-	listener, err := net.Listen("tcp", from)
+func NewProxy(from, to string) *Proxy {
+	return &Proxy{
+		from: from,
+		to:   to,
+		done: make(chan struct{}),
+	}
+}
+
+func (p *Proxy) Start() error {
+	listener, err := net.Listen("tcp", p.from)
 	if err != nil {
 		return err
 	}
-	go run(listener, addr.Port)
+	go p.run(listener)
 	return nil
 }
 
-// TODO not a synchronous map
-var connections map[string]*net.TCPConn = make(map[string]*net.TCPConn)
+func (p *Proxy) Stop() {
+	if p.done == nil {
+		return
+	}
+	close(p.done)
+	p.done = nil
+}
 
-var id_seq int = 0
-
-func run(listener net.Listener, port int) {
+func (p *Proxy) run(listener net.Listener) {
 	for {
-		connection, err := listener.Accept()
-		if err != nil {
-			log.Print(err)
-		} else {
-
-			// track the connections
-			id_seq += 1
-			id := id_seq
-			key := fmt.Sprintf("%d:%d", port, id)
-			_, ok := connections[key]
-			if ok {
-				log.Fatal("creating duplicate port id connection")
+		select {
+		case <-p.done:
+			return
+		default:
+			connection, err := listener.Accept()
+			if err == nil {
+				go p.handle(connection)
+			} else {
+				log.Print(err)
 			}
-			connections[key] = connection.(*net.TCPConn)
-
-			// announce the connection to the server
-			writeToProxy([]byte{}, port, id)
-			log.Println("announced new tcp connection for port ", port, " id ", id)
-
-			go handle(connection, port, id)
 		}
 	}
 }
 
-func handle(connection net.Conn, port int, id int) {
-	log.Println("Handling tcp port ", port, " id ", id)
-	defer log.Println("Done handling tcp port ", port, " id ", id)
+func (p *Proxy) handle(connection net.Conn) {
+	log.Println("Handling", connection)
+	defer log.Println("Done handling", connection)
 	defer connection.Close()
-
-	buf := make([]byte, 1024*32)
-
-	for {
-		n, err := connection.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				log.Println("connection closed, port ", port, " id ", id)
-				break
-			} else {
-				log.Println("ignoring: ", err)
-				return
-			}
-		}
-
-		if n == 0 {
-			log.Println("got a 0 length read from TCP")
-			continue
-		}
-		writeToProxy(buf[0:n], port, id)
+	remote, err := net.Dial("tcp", p.to)
+	if err != nil {
+		log.Print(err)
+		return
 	}
+	defer remote.Close()
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+	go p.copy(remote, connection, wg)
+	go p.copy(connection, remote, wg)
+	wg.Wait()
+}
 
-	writeToProxy([]byte{}, port, id)
-	log.Println("announced closing tcp connection for port ", port, " id ", id)
+func (p *Proxy) copy(from, to net.Conn, wg *sync.WaitGroup) {
+	defer wg.Done()
+	select {
+	case <-p.done:
+		return
+	default:
+		if _, err := io.Copy(to, from); err != nil {
+			log.Print(err)
+			p.Stop()
+			return
+		}
+	}
 }

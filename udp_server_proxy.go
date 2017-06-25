@@ -30,6 +30,8 @@ var proxyReader *bufio.Reader
 
 func server() {
 
+	initServerTCPPorts()
+
 	proxy = listenAsServerProxy()
 	proxyReader = bufio.NewReader(proxy)
 
