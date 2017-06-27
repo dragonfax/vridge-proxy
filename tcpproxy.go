@@ -29,7 +29,7 @@ func initTCPPorts(from, fromto, to string, port_adjust_local int, port_adjust_re
 
 	for _, tcp_port := range TCP_PORTS {
 		localBindAddr := fmt.Sprintf("%s:%d", from, tcp_port+port_adjust_local)
-		fromto := fmt.Sprintf("%s:%d", fromto, TCP_PROXY_PORT)
+		fromto := fmt.Sprintf("%s:0", fromto)
 		remoteBindAddr := fmt.Sprintf("%s:%d", to, tcp_port+port_adjust_remote)
 
 		log.Println("binding local ", localBindAddr, " through ", fromto, " to ", remoteBindAddr)

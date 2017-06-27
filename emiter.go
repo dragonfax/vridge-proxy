@@ -41,7 +41,7 @@ func startEmiter(udpTargetIP string) {
 
 			buf = buf[:n]
 
-			// log.Println("emitting packet, size ", n)
+			log.Println("emitting packet, size ", n)
 
 			// send UDP
 			n, err := udpConn.WriteTo(buf, udpTargetAddr)

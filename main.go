@@ -25,7 +25,7 @@ const TCP_PROXY_PORT = 23432
 const PROXY_PORT = 3278
 
 // the IP of thep phone.
-const CLIENT_IP = "192.168.0.100"
+const CLIENT_IP = "192.168.0.101"
 
 func main() {
 
