@@ -13,22 +13,22 @@ func client() {
 
 	proxy = connectToServerProxy()
 	proxyReader = bufio.NewReader(proxy)
-	startEmiter(clientIP)
+	startEmiter(CLIENT_IP)
 
-	CreateUDPPort(localBindIP, UDP_PORT, proxy)
+	CreateUDPPort(CLIENT_VRIDGE_LISTEN_IP, UDP_PORT, proxy)
 }
 
 var udpConn *net.UDPConn
 
-func CreateUDPPort(bindIP string, port int, tcpProxy net.Conn) {
+func CreateUDPPort(udpListenIP string, port int, tcpProxy net.Conn) {
 
-	bindAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", bindIP, port))
+	udpListenAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpListenIP, port))
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("binding to UDP ", bindAddr)
+	log.Println("binding to UDP ", udpListenAddr)
 
-	udpConn, err = net.ListenUDP("udp", bindAddr)
+	udpConn, err = net.ListenUDP("udp", udpListenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}

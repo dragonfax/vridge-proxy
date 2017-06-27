@@ -7,12 +7,10 @@ import (
 	"net"
 )
 
-var UDP_PORT = 18481
-
-var SERVER_BIND_IP = "169.254.218.169"
+const UDP_PORT = 18481
 
 func listenAsServerProxy() *net.TCPConn {
-	ln, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", 3278))
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", SERVER_PROXY_LISTEN_IP, PROXY_PORT))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +35,7 @@ func server() {
 	proxy = listenAsServerProxy()
 	proxyReader = bufio.NewReader(proxy)
 
-	startEmiter(serverIP)
+	startEmiter(SERVER_VRIDGE_IP)
 
-	CreateUDPPort(SERVER_BIND_IP, UDP_PORT, proxy)
+	CreateUDPPort(SERVER_PROXY_SOURCE_IP, UDP_PORT, proxy)
 }

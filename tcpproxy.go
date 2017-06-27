@@ -15,22 +15,24 @@ var num_tcp_ports = TCP_PORTS_HIGH - TCP_PORTS_LOW + 1
 var TCP_PORTS = make([]int, num_tcp_ports)
 
 func initClientTCPPorts() {
-	initTCPPorts("", 0, -1000)
+	initTCPPorts("0.0.0.0", "", SERVER_PUBLIC_IP, 0, -1000)
 }
 
 func initServerTCPPorts() {
-	initTCPPorts(SERVER_BIND_IP+":23432", -1000, 0)
+	initTCPPorts(SERVER_PROXY_LISTEN_IP, SERVER_PROXY_SOURCE_IP, SERVER_VRIDGE_IP, -1000, 0)
 }
 
-func initTCPPorts(fromto string, port_adjust_local int, port_adjust_remote int) {
+func initTCPPorts(from, fromto, to string, port_adjust_local int, port_adjust_remote int) {
 	for i := 0; i < num_tcp_ports; i++ {
 		TCP_PORTS[i] = TCP_PORTS_LOW + i
 	}
 
 	for _, tcp_port := range TCP_PORTS {
-		localBindAddr := fmt.Sprintf("%s:%d", localBindIP, tcp_port+port_adjust_local)
-		log.Println("binding ", localBindAddr)
-		remoteBindAddr := fmt.Sprintf("%s:%d", serverIP, tcp_port+port_adjust_remote)
+		localBindAddr := fmt.Sprintf("%s:%d", from, tcp_port+port_adjust_local)
+		fromto := fmt.Sprintf("%s:%d", fromto, TCP_PROXY_PORT)
+		remoteBindAddr := fmt.Sprintf("%s:%d", to, tcp_port+port_adjust_remote)
+
+		log.Println("binding local ", localBindAddr, " through ", fromto, " to ", remoteBindAddr)
 		p := NewProxy(localBindAddr, fromto, remoteBindAddr)
 		err := p.Start()
 		if err != nil {

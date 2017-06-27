@@ -9,7 +9,7 @@ import (
 )
 
 func connectToServerProxy() *net.TCPConn {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverIP, 3278))
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", SERVER_PUBLIC_IP, 3278))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -19,9 +19,9 @@ func connectToServerProxy() *net.TCPConn {
 	return conn.(*net.TCPConn)
 }
 
-func startEmiter(udpIP string) {
+func startEmiter(udpTargetIP string) {
 
-	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpIP, UDP_PORT))
+	udpTargetAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpTargetIP, UDP_PORT))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,10 +44,10 @@ func startEmiter(udpIP string) {
 			// log.Println("emitting packet, size ", n)
 
 			// send UDP
-			n, err := udpConn.WriteTo(buf, udpAddr)
+			n, err := udpConn.WriteTo(buf, udpTargetAddr)
 			if err != nil {
 				log.Println(buf)
-				log.Println(udpAddr)
+				log.Println(udpTargetAddr)
 				panic(err)
 			}
 			if n != len(buf) {
