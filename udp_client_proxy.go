@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
 func client() {
@@ -33,35 +34,44 @@ func CreateUDPPort(udpListenIP string, port int, tcpProxy net.Conn) {
 		log.Fatal(err)
 	}
 
-	// Catch UDP, tunnel into TCP
-	go func() {
+	for range "1234" {
 
-		// needs to be global, not goroutine local
-		buffer := make([]byte, 1024*10)
+		// Catch UDP, tunnel into TCP
+		go func() {
 
-		log.Println("upp port is bound, and processing")
+			// needs to be global, not goroutine local
+			buffer := make([]byte, 1024*10)
 
-		for {
-			buffer = buffer[:cap(buffer)]
-			n, sAddr, err := udpConn.ReadFrom(buffer)
-			if err != nil {
-				panic(err)
+			log.Println("upp port is bound, and processing")
+
+			for {
+				buffer = buffer[:cap(buffer)]
+				n, sAddr, err := udpConn.ReadFrom(buffer)
+				if err != nil {
+					panic(err)
+				}
+				buffer = buffer[:n]
+
+				sourceAddr := sAddr.(*net.UDPAddr)
+
+				if sourceAddr == nil {
+					// log.Println("empty packet")
+					continue
+				}
+
+				writeToProxy(buffer)
 			}
-			buffer = buffer[:n]
+		}()
 
-			sourceAddr := sAddr.(*net.UDPAddr)
-
-			if sourceAddr == nil {
-				// log.Println("empty packet")
-				continue
-			}
-
-			writeToProxy(buffer)
-		}
-	}()
+	}
 }
 
+var udpWriteLock sync.Mutex = sync.Mutex{}
+
 func writeToProxy(buf []byte) {
+
+	udpWriteLock.Lock()
+	defer udpWriteLock.Unlock()
 
 	bs := make([]byte, 2)
 	binary.LittleEndian.PutUint16(bs, uint16(len(buf)))

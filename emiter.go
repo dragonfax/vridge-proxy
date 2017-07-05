@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"sync"
 )
 
 func connectToServerProxy() *net.TCPConn {
@@ -26,38 +27,48 @@ func startEmiter(udpTargetIP string) {
 		log.Fatal(err)
 	}
 
-	// Read from TCP and emit packets into UDP or TCP
-	go func() {
-		buf := make([]byte, 1024*10)
+	// create 4 of them.
+	for range "1234" {
 
-		log.Println("emitter has started")
+		// Read from TCP and emit packets into UDP or TCP
+		go func() {
+			buf := make([]byte, 1024*10)
 
-		for {
-			n := readFromProxy(buf)
+			log.Println("emitter has started")
 
-			if n == 0 {
-				panic("zero length packet from proxy")
+			for {
+				n := readFromProxy(buf)
+
+				if n == 0 {
+					panic("zero length packet from proxy")
+				}
+
+				buf = buf[:n]
+
+				// log.Println("emitting packet, size ", n)
+
+				// send UDP
+				n, err := udpConn.WriteTo(buf, udpTargetAddr)
+				if err != nil {
+					log.Println(buf)
+					log.Println(udpTargetAddr)
+					panic(err)
+				}
+				if n != len(buf) {
+					panic("udp: wrong length")
+				}
 			}
+		}()
 
-			buf = buf[:n]
-
-			log.Println("emitting packet, size ", n)
-
-			// send UDP
-			n, err := udpConn.WriteTo(buf, udpTargetAddr)
-			if err != nil {
-				log.Println(buf)
-				log.Println(udpTargetAddr)
-				panic(err)
-			}
-			if n != len(buf) {
-				panic("udp: wrong length")
-			}
-		}
-	}()
+	}
 }
 
+var udpReadLock sync.Mutex = sync.Mutex{}
+
 func readFromProxy(buf []byte) int {
+
+	udpReadLock.Lock()
+	defer udpReadLock.Unlock()
 
 	buf = buf[:2]
 	n, err := io.ReadFull(proxyReader, buf)
