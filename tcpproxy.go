@@ -8,12 +8,6 @@ import (
 	"sync"
 )
 
-const TCP_PORTS_LOW = 38216
-const TCP_PORTS_HIGH = 38230
-
-var num_tcp_ports = TCP_PORTS_HIGH - TCP_PORTS_LOW + 1
-var TCP_PORTS = make([]int, num_tcp_ports)
-
 func initClientTCPPorts() {
 	initTCPPorts("0.0.0.0", "", SERVER_PUBLIC_IP, 0, -1000)
 }
