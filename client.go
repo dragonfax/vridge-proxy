@@ -6,7 +6,7 @@ func client() {
 
 	connectToServerProxy()
 
-	startEmiter(CLIENT_IP)
+	startEmiter()
 
-	CreateUDPPorts(CLIENT_VRIDGE_LISTEN_IP, UDP_PORT, proxy)
+	CreateUDPServingPorts()
 }

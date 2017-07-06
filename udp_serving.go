@@ -1,24 +1,20 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
-	"io"
 	"log"
 	"net"
-	"sync"
 )
 
-var udpServingConns map[int]*net.UDPConn = make(map[int]*net.UDPCon)
-
+var udpServingConns map[int]*net.UDPConn = make(map[int]*net.UDPConn)
 
 func CreateUDPServingPorts() {
 	for _, port := range UDP_PORTS {
-		udpServingConns[port] = CreateUDPPort(port)
+		udpServingConns[port] = CreateUDPServingPort(port)
 	}
 }
 
-var udpTargetAddrs = make([]*net.UDPAddr)
+var udpTargetAddrs = make([]*net.UDPAddr, len(UDP_PORTS))
 
 func CreateUDPServingPort(port int) *net.UDPConn {
 
@@ -34,7 +30,7 @@ func CreateUDPServingPort(port int) *net.UDPConn {
 	}
 	udpTargetAddrs[port] = udpTargetAddr
 
-	udpConn, err = net.ListenUDP("udp", udpListenAddr)
+	udpConn, err := net.ListenUDP("udp", udpListenAddr)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,15 +67,13 @@ func CreateUDPServingPort(port int) *net.UDPConn {
 	return udpConn
 }
 
-
-
-func startEmiter(udpTargetIP string) {
+func startEmiter() {
 
 	/*
-	udpTargetAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpTargetIP, UDP_PORT))
-	if err != nil {
-		log.Fatal(err)
-	}
+		udpTargetAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpTargetIP, UDP_PORT))
+		if err != nil {
+			log.Fatal(err)
+		}
 	*/
 
 	// create 4 of them.
@@ -103,14 +97,14 @@ func startEmiter(udpTargetIP string) {
 
 				// log.Println("emitting packet, size ", n)
 
-				udpTargetAddr := targetAddrs[port]
+				udpTargetAddr := udpTargetAddrs[port]
 
 				// send UDP
-				n, err := udpConns[port].WriteTo(buf, udpTargetAddr)
+				n, err := udpServingConns[port].WriteTo(buf, udpTargetAddr)
 				if err != nil {
 					// log.Println(buf)
-					log.Println("packet length ",n)
-					log.Println("packet target ",udpTargetAddr)
+					log.Println("packet length ", n)
+					log.Println("packet target ", udpTargetAddr)
 					panic(err)
 				}
 				if n != len(buf) {
@@ -121,4 +115,3 @@ func startEmiter(udpTargetIP string) {
 
 	}
 }
-

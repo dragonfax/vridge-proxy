@@ -9,11 +9,11 @@ import (
 )
 
 func initClientTCPPorts() {
-	initTCPPorts("0.0.0.0", "", SERVER_PUBLIC_IP, 0, -1000)
+	initTCPPorts(PROXY_BIND_IP, "", SERVER_PUBLIC_IP, 0, -1000)
 }
 
 func initServerTCPPorts() {
-	initTCPPorts(SERVER_PROXY_LISTEN_IP, SERVER_PROXY_SOURCE_IP, SERVER_VRIDGE_IP, -1000, 0)
+	initTCPPorts("0.0.0.0", PROXY_BIND_IP, PARSEC_BIND_IP, -1000, 0)
 }
 
 func initTCPPorts(from, fromto, to string, port_adjust_local int, port_adjust_remote int) {

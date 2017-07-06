@@ -6,7 +6,7 @@ func server() {
 
 	listenAsServerProxy()
 
-	startEmiter(SERVER_VRIDGE_IP)
+	startEmiter()
 
-	CreateUDPPort(SERVER_PROXY_SOURCE_IP, UDP_PORT, proxy)
+	CreateUDPServingPorts()
 }
