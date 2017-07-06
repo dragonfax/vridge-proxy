@@ -9,7 +9,7 @@ import (
 )
 
 func initClientTCPPorts() {
-	initTCPPorts(PROXY_BIND_IP, "", SERVER_PUBLIC_IP, 0, -1000)
+	initTCPPorts(PROXY_BIND_IP, "", serverIP, 0, -1000)
 }
 
 func initServerTCPPorts() {
@@ -17,11 +17,7 @@ func initServerTCPPorts() {
 }
 
 func initTCPPorts(from, fromto, to string, port_adjust_local int, port_adjust_remote int) {
-	for i := 0; i < num_tcp_ports; i++ {
-		TCP_PORTS[i] = TCP_PORTS_LOW + i
-	}
-
-	for _, tcp_port := range TCP_PORTS {
+	for _, tcp_port := range tcpPorts {
 		localBindAddr := fmt.Sprintf("%s:%d", from, tcp_port+port_adjust_local)
 		fromto := fmt.Sprintf("%s:0", fromto)
 		remoteBindAddr := fmt.Sprintf("%s:%d", to, tcp_port+port_adjust_remote)

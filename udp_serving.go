@@ -9,12 +9,12 @@ import (
 var udpServingConns map[int]*net.UDPConn = make(map[int]*net.UDPConn)
 
 func CreateUDPServingPorts() {
-	for _, port := range UDP_PORTS {
+	for _, port := range udpPorts {
 		udpServingConns[port] = CreateUDPServingPort(port)
 	}
 }
 
-var udpTargetAddrs = make([]*net.UDPAddr, len(UDP_PORTS))
+var udpTargetAddrs []*net.UDPAddr
 
 func CreateUDPServingPort(port int) *net.UDPConn {
 

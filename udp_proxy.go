@@ -14,7 +14,7 @@ var udpProxyConn *net.UDPConn
 var handshake = []byte{'h', 'e', 'l', 'l', '0'}
 
 func connectToServerProxy() {
-	udpProxyAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", SERVER_PUBLIC_IP, PROXY_UDP_PORT))
+	udpProxyAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", serverIP, PROXY_UDP_PORT))
 	if err != nil {
 		panic(err)
 	}
