@@ -14,7 +14,7 @@ func CreateUDPServingPorts() {
 	}
 }
 
-var udpTargetAddrs []*net.UDPAddr
+var udpTargetAddrs map[int]*net.UDPAddr
 
 func CreateUDPServingPort(port int) *net.UDPConn {
 

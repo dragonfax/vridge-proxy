@@ -28,6 +28,8 @@ func connectToServerProxy() {
 	// get response.
 	writeToProxy(0, handshake)
 
+	log.Println("handshake sent")
+
 	buf := make([]byte, len(handshake))
 	readFromProxy(buf)
 	if !reflect.DeepEqual(buf, handshake) {
@@ -51,8 +53,11 @@ func listenAsServerProxy() {
 	buf := make([]byte, len(handshake))
 	readFromProxy(buf)
 	if !reflect.DeepEqual(buf, handshake) {
+		fmt.Println(buf, " vs ", handshake)
 		panic("wrong hand shake")
 	}
+
+	log.Println("handshake received")
 
 	writeToProxy(0, handshake)
 
@@ -73,7 +78,13 @@ func writeToProxy(port int, payload []byte) {
 	copy(buf[2:], payload)
 
 	// body
-	n, err := udpProxyConn.Write(buf)
+	var n int
+	var err error
+	if *serverFlagP {
+		n, err = udpProxyConn.WriteTo(buf, clientProxyAddr)
+	} else {
+		n, err = udpProxyConn.Write(buf)
+	}
 	if err != nil {
 		log.Fatal("emitter: ", err)
 	}
@@ -85,13 +96,16 @@ func writeToProxy(port int, payload []byte) {
 
 var udpReadLock sync.Mutex = sync.Mutex{}
 
+var clientProxyAddr *net.UDPAddr
+
 func readFromProxy(payload []byte) (pl int, port int) {
 
 	udpReadLock.Lock()
 	defer udpReadLock.Unlock()
 
 	buf := make([]byte, len(payload)+2)
-	n, err := udpProxyConn.Read(buf)
+
+	n, sourceAddr, err := udpProxyConn.ReadFrom(buf)
 	if err != nil {
 		panic(err)
 	}
@@ -104,10 +118,16 @@ func readFromProxy(payload []byte) (pl int, port int) {
 		return 0, 0
 	}
 
+	if clientProxyAddr == nil {
+		clientProxyAddr = &net.UDPAddr{}
+		*clientProxyAddr = *sourceAddr.(*net.UDPAddr)
+		log.Println("client address ", clientProxyAddr)
+	}
+
 	buf = buf[:2]
 	port = int(binary.LittleEndian.Uint16(buf))
 
-	buf = buf[2 : n-2]
+	buf = buf[2:n]
 	copy(payload, buf)
 	return n - 2, port
 }

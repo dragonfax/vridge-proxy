@@ -41,14 +41,16 @@ var tcpPorts portSlice
 
 var serverIP string
 
+var serverFlagP *bool
+
 func main() {
 
 	flag.Var(&udpPorts, "udp", "List of udp ports")
-	flag.Var(&udpPorts, "tcp", "List of tcp ports")
+	flag.Var(&tcpPorts, "tcp", "List of tcp ports")
 	// flag.StringVar(&clientIP, "client", "Public Client IP")
 	flag.StringVar(&serverIP, "serverIP", "", "Public Server IP")
 
-	var serverFlagP = flag.Bool("server", false, "run the server side of the proxy")
+	serverFlagP = flag.Bool("server", false, "run the server side of the proxy")
 	flag.Parse()
 
 	if flag.NFlag() == 0 {
@@ -56,7 +58,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	udpTargetAddrs = make([]*net.UDPAddr, len(udpPorts))
+	udpTargetAddrs = make(map[int]*net.UDPAddr)
 
 	if *serverFlagP {
 		server()
