@@ -18,13 +18,21 @@ func CreateUDPServingPorts() {
 	}
 }
 
-func CreateUDPServingPort(port int) {
+var udpTargetAddrs = make([]*net.UDPAddr)
 
-	udpListenAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpListenIP, port))
+func CreateUDPServingPort(port int) *net.UDPConn {
+
+	udpListenAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", PROXY_BIND_IP, port))
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("binding to UDP ", udpListenAddr)
+
+	udpTargetAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", PARSEC_BIND_IP, port))
+	if err != nil {
+		panic(err)
+	}
+	udpTargetAddrs[port] = udpTargetAddr
 
 	udpConn, err = net.ListenUDP("udp", udpListenAddr)
 	if err != nil {
@@ -36,7 +44,6 @@ func CreateUDPServingPort(port int) {
 		// Catch UDP, tunnel into TCP
 		go func() {
 
-			// needs to be global, not goroutine local
 			buffer := make([]byte, 1024*10)
 
 			log.Println("upp port is bound, and processing")
@@ -50,27 +57,30 @@ func CreateUDPServingPort(port int) {
 				buffer = buffer[:n]
 
 				sourceAddr := sAddr.(*net.UDPAddr)
-
 				if sourceAddr == nil {
 					// log.Println("empty packet")
 					continue
 				}
 
-				writeToProxy(buffer)
+				writeToProxy(port, buffer)
 			}
 		}()
 
 	}
+
+	return udpConn
 }
 
 
 
 func startEmiter(udpTargetIP string) {
 
+	/*
 	udpTargetAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", udpTargetIP, UDP_PORT))
 	if err != nil {
 		log.Fatal(err)
 	}
+	*/
 
 	// create 4 of them.
 	for range "1234" {
@@ -82,21 +92,25 @@ func startEmiter(udpTargetIP string) {
 			log.Println("emitter has started")
 
 			for {
-				n := readFromProxy(buf)
+				n, port := readFromProxy(buf)
 
 				if n == 0 {
-					panic("zero length packet from proxy")
+					log.Println("zero length packet from proxy")
+					continue
 				}
 
 				buf = buf[:n]
 
 				// log.Println("emitting packet, size ", n)
 
+				udpTargetAddr := targetAddrs[port]
+
 				// send UDP
-				n, err := udpConn.WriteTo(buf, udpTargetAddr)
+				n, err := udpConns[port].WriteTo(buf, udpTargetAddr)
 				if err != nil {
-					log.Println(buf)
-					log.Println(udpTargetAddr)
+					// log.Println(buf)
+					log.Println("packet length ",n)
+					log.Println("packet target ",udpTargetAddr)
 					panic(err)
 				}
 				if n != len(buf) {
