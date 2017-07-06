@@ -1,9 +1,10 @@
+package main
+
 func server() {
 
 	initServerTCPPorts()
 
-	proxy = listenAsServerProxy()
-	proxyReader = bufio.NewReader(proxy)
+	listenAsServerProxy()
 
 	startEmiter(SERVER_VRIDGE_IP)
 
